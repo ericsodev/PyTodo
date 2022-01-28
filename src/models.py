@@ -32,7 +32,9 @@ class Todo:
             return f'{self.name}]'
         else:
             if long:
-                return f'{self.name} - {self.date.strftime("%b %d (%a)")}'
+                cat = ', '.join(list(self.category)[0:2])
+                return f'{self.name} - ' \
+                       f'{self.date.strftime("%b %d (%a)")} - ({cat})'
             else:
                 return f'{self.name} - {self.date.strftime("%b %d (%a)")}'
 

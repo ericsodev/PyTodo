@@ -1,1 +1,29 @@
-{}
+{
+  "tasks": [
+    {
+      "name": "Assignment 7 Q1",
+      "completed": false,
+      "category": [
+        "mat137"
+      ],
+      "date": "2022-01-28"
+    },
+    {
+      "name": "Assignment 1",
+      "completed": false,
+      "category": [
+        "csc148"
+      ],
+      "date": "2022-02-22"
+    },
+    {
+      "name": "Test",
+      "completed": false,
+      "category": [
+        "school",
+        "mat137"
+      ],
+      "date": "2022-02-15"
+    }
+  ]
+}

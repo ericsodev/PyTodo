@@ -12,6 +12,8 @@ def get_tasks(path="data.json") -> List[Todo]:
         raw_data = file.read()
 
     data = json.loads(raw_data)
+    if 'tasks' not in data:
+        return []
     return [Todo(todo) for todo in data['tasks']]
 
 
@@ -64,10 +66,10 @@ def filter_categories(tasks: List[Todo], categories: List[str], match_all: bool 
     candidates = []
     for task in tasks:
         if match_all:
-            if set(task.category).intersection(set(categories)):
+            if set(categories).issubset(set(task.category)):
                 candidates.append(task)
         else:
-            if set(task.category).issubset(set(categories)):
+            if set(task.category).intersection(set(categories)):
                 candidates.append(task)
     return candidates
 

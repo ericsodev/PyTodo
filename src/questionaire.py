@@ -31,13 +31,41 @@ class Interface:
             Token.Question: 'underline bold',
         })
 
-    def _list_change_completion(self, original: Dict[str, Todo], selected: List[str]) -> None:
+    def _list_change_completion(self, original: Dict[str, Todo],
+                                selected: List[str], confirm: bool) -> None:
+        original_selected = 0
+        num_selected = 0
         for name, task in original.items():
-            task.completed = False
+            if task.completed:
+                original_selected += 1
             if name in selected:
-                task.completed = True
+                num_selected += 1
+            task.completed = False
 
-    def _list_change_remove(self, original: Dict[str, Todo], selected: List[str]) -> None:
+        if original_selected != num_selected:
+            if confirm:
+                ans = prompt([{"type": "confirm",
+                         "name": "save",
+                         "message": "Save changes?",
+                         "default": True
+                         }], style=self.style, qmark=">", vi_mode=True)
+                if not ans:
+                    return
+            for name in selected:
+                original[name].completed = True
+
+    def _list_change_remove(self, original: Dict[str, Todo],
+                            selected: List[str], confirm: bool) -> None:
+        if len(selected) == 0:
+            return
+        if confirm:
+            ans = prompt([{"type": "confirm",
+                           "name": "save",
+                           "message": "Save changes?",
+                           "default": False
+                           }], style=self.style, qmark=">", vi_mode=True)
+            if not ans:
+                return
         removals = []
         for name, task in original.items():
             task.completed = False
@@ -49,10 +77,12 @@ class Interface:
     def update_categories(self):
         self.categories = []
         for task in self.todos:
-            self.categories = list(set(self.categories).union(set(task.category)))
+            self.categories = list(
+                set(self.categories).union(set(task.category)))
 
-    def cmd_show(self, todos: List[Todo], fn: Callable, auto_check_complete=True,
-                 confirm=True, message: str = "Tasks"):
+    def cmd_show(self, todos: List[Todo], fn: Callable,
+                 auto_check_complete=True,
+                 confirm=True, message: str="Tasks", long: bool=False):
         if len(todos) == 0:
             return
         util.filter_date(todos)
@@ -63,7 +93,7 @@ class Interface:
             auto_check = task.completed if auto_check_complete else False
             choices.append(
                 {
-                    'name': task.__str__(),
+                    'name': task.__str__(long=long),
                     'checked': auto_check
                 }
             )
@@ -76,32 +106,29 @@ class Interface:
                 'choices': choices
             }
         ]
-        if confirm:
-            question.append({"type": "confirm",
-                             "name": "save",
-                             "message": "Save changes?",
-                             "default": True
-                             })
-
         ans = prompt(question, style=self.style, qmark=">", vi_mode=True)
-        if not confirm or ans["save"]:
-            fn(task_dict, ans['main'])
+        fn(task_dict, ans['main'], confirm=confirm)
 
     def cmd_today(self):
-        self.cmd_show(util.filter_date(self.todos, 0), self._list_change_completion, message="Today's Tasks")
+        self.cmd_show(util.filter_date(self.todos, 0),
+                      self._list_change_completion,
+                      message="Today's Tasks", long=True)
 
     def cmd_three_day(self):
-        self.cmd_show(util.filter_date(self.todos, 2), self._list_change_completion, message="3-Day Tasks")
+        self.cmd_show(util.filter_date(self.todos, 2),
+                      self._list_change_completion, message="3-Day Tasks")
 
     def cmd_read_only(self):
-        self.cmd_show(self.todos, lambda x, y: None, confirm=False, message="All Tasks (Read Only)")
+        self.cmd_show(self.todos, lambda a, b, confirm: None, confirm=False,
+                      message="All Tasks (Read Only)")
 
     def cmd_filter(self):
         ans = prompt([
             {
                 'type': 'input',
                 'name': 'date',
-                'message': 'Provide a positive date range from today (negatives imply any date)',
+                'message': 'Provide a positive date range from today ('
+                           'negatives imply any date)',
                 'default': '0'
             },
             {
@@ -126,10 +153,13 @@ class Interface:
 
         candidates = self.todos
         if ans['date'].isdigit() and int(ans['date']) >= 0:
-            candidates = util.filter_date(candidates, int(ans['date']), future_only=ans['past_dates'])
-        candidates = util.filter_completion(candidates, completed=ans['completed'])
+            candidates = util.filter_date(candidates, int(ans['date']),
+                                          future_only=ans['past_dates'])
+        if not ans['completed']:
+            candidates = util.filter_completion(candidates,
+                                                completed=False)
 
-        categories = [c.strip() for c in ans['category'].split(',')]
+        categories = [c.strip().lower() for c in ans['category'].split(',')]
         if categories[0] != '':
             q = prompt([
                 {
@@ -139,9 +169,12 @@ class Interface:
                     'default': False
                 }
             ])
-            candidates = util.filter_categories(candidates, categories, q['category_all'])
+            candidates = util.filter_categories(candidates, categories,
+                                                q['category_all'])
 
-        self.cmd_show(candidates, self._list_change_completion, message="Here are your results:")
+        self.cmd_show(candidates,
+                      self._list_change_completion,
+                      message="Here are your results:")
 
     def cmd_add(self):
         question = [
@@ -180,12 +213,14 @@ class Interface:
                 return
 
         data = {'name': ans['name'], 'date': todo_date.isoformat(),
-                'completed': False, 'category': [c.strip() for c in ans['cat'].split(',')]}
+                'completed': False,
+                'category': [c.strip().lower() for c in ans['cat'].split(',')]}
         self.todos.append(Todo(data))
         pprint(self.todos)
 
     def cmd_remove(self):
-        self.cmd_show(self.todos, self._list_change_remove, auto_check_complete=False, message="Remove Tasks")
+        self.cmd_show(self.todos, self._list_change_remove,
+                      auto_check_complete=False, message="Remove Tasks")
 
     def cmd_save(self):
         ans = prompt([
@@ -207,16 +242,20 @@ class Interface:
         print("==== Bye Bye ====")
 
     def cmd_base(self):
-        commands = {'today': self.cmd_today, '3-day': self.cmd_three_day, 'filter': self.cmd_filter,
-                    'read all': self.cmd_read_only, 'add': self.cmd_add, 'remove': self.cmd_remove,
+        commands = {'today': self.cmd_today, '3-day': self.cmd_three_day,
+                    'filter': self.cmd_filter,
+                    'read all': self.cmd_read_only, 'add': self.cmd_add,
+                    'remove': self.cmd_remove,
                     'save': self.cmd_save, 'quit': self.cmd_quit}
         questions = [
             {
                 "type": "list",
                 "name": "main",
                 "message": "What do you want to do?",
-                "choices": [Separator('==== View ===='), 'Today', '3-day', 'Read All',
-                            Separator('==== Manage ===='), 'Add', 'Remove', 'Filter',
+                "choices": [Separator('==== View ===='), 'Today', '3-day',
+                            'Read All',
+                            Separator('==== Manage ===='), 'Add', 'Remove',
+                            'Filter',
                             Separator('==== Save / Quit ===='), 'Save', 'Quit'],
                 "filter": lambda x: x.lower()
             }
