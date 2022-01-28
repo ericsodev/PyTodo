@@ -53,6 +53,8 @@ class Interface:
 
     def cmd_show(self, todos: List[Todo], fn: Callable, auto_check_complete=True,
                  confirm=True, message: str = "Tasks"):
+        if len(todos) == 0:
+            return
         util.filter_date(todos)
         task_dict = {}
         choices = []
