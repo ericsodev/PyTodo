@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/CLI-TODO.iml" filepath="$PROJECT_DIR$/.idea/CLI-TODO.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/PyTodo.iml" filepath="$PROJECT_DIR$/.idea/PyTodo.iml" />
     </modules>
   </component>
 </project>
